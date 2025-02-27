@@ -1,0 +1,89 @@
+{
+    "hand_tracking": {
+        "max_hands": 1,
+        "detection_confidence": 0.7,
+        "tracking_confidence": 0.5
+    },
+    "gemini": {
+        "api_key": "AIzaSyBaVt-kVcsZcCehmYq-PqcpgquNyhZio-M"
+
+    },
+    "cursor": {
+        "failsafe": true,
+        "smoothing": 0.5,
+        "sensitivity_x": 1.3,
+        "sensitivity_y": 1.3,
+        "step_size": 10
+    },
+    "mouse": {
+        "scroll_amount_up": 100,
+        "scroll_amount_down": -100
+    },
+    "camera": {
+        "device_id": 0,
+        "width": 640,
+        "height": 480
+    },
+    "voice": {
+        "commands": {
+            "ask": [
+                "ako",
+                "čo je",
+                "prečo",
+                "kedy",
+                "kto",
+                "kde",
+                "čo",
+                "aký",
+                "aká",
+                "aké",
+                "akí",
+                "čo znamená",
+                "čo znamenajú",
+                "čo znamená slovo",
+                "koľko",
+                "vysvetli",
+                "povedz mi",
+                "definuj",
+                "charakterizuj",
+                "popíš",
+                "objasni",
+                "ozrejmí",
+                "uviesť",
+                "udaj",
+                "zisti",
+                "vyhľadaj",
+                "nájdi"
+            ],
+            "exit": ["ukončiť", "zavrieť", "koniec", "skonči", "stop", "vypni sa", "odosobni sa"],
+            "web_back": ["späť",  "back", "previous page", "predchádzajúca stránka"],
+            "click": ["klikni", "kliknutie", "click", "klik", "potvrď", "vyber"],
+            "right_click": ["pravý klik", "pravý", "right click", "pravý click", "druhý klik"],
+            "scroll_up": ["roluj hore", "posuň hore", "hore", "posunúť nahor", "listuj hore"],
+            "scroll_down": ["roluj dole", "posuň dole", "dole", "posunúť nadol", "listuj dole"],
+            "double_click": ["dvojklik", "dvakrát klikni", "double click", "dvojité kliknutie"],
+            "zoom_in": ["zväčši okno", "zväčši", "maximalizuj", "zväčši obraz", "priblíž", "zväčši displej"],
+            "zoom_out": ["zmenši okno", "zmenši", "minimalizuj", "zmenši obraz", "oddiaľ", "zmenši displej"],
+            "save_file": ["ulož súbor", "ulož", "sejf", "save", "ukladať", "archivuj"],
+            "undo": ["vráť späť", "undo", "vráť", "naspäť", "krok späť", "predošlý krok"],
+            "copy": ["kopíruj", "skopíruj", "copy", "skopči", "urob kópiu", "vytvor kópiu"],
+            "paste": ["vlož", "vlož text", "paste", "prilep", "nalep", "vsun text", "vložiť obsah"],
+            "switch_application": ["prepni aplikáciu", "zmeň aplikáciu", "prepnúť okno", "zmeniť okno", "ďalšie okno"],
+            "close_window": ["zatvor okno", "zatvor", "zavri okno", "zavri"],
+            "refresh_page": ["obnov stránku", "obnov", "refresh", "načítaj znova", "aktualizuj stránku"],
+            "volume_up": ["zvýš hlasitosť", "hlasnejšie", "pridaj hlas", "zvýš zvuk", "zvyšovať hlas"],
+            "volume_down": ["zníž hlasitosť", "tichšie", "uber hlas", "zníž zvuk", "znižovať hlas"],
+            "volume_set": ["pridaj hlas na ", "hlasitosť na", " uber hlas na", "nastav hlasitosť na", "zmeniť hlas na"],
+            "open_application": ["otvor aplikáciu", "spusti", "otvoriť", "otvor program", "spusti aplikáciu"],
+            "search_on_website": [],
+            "open_youtube": [" otvor youtube", "youtube", "spusti youtube", "otvorím youtube"],
+            "open_google": ["otvor google", "google", "spusti google", "otvorím google", "spusti vyhľadávanie"],
+            "open_facebook": ["otvor facebook", "facebook", "spusti facebook", "otvorím facebook"],
+            "open_twitter": ["otvor twitter", "twitter", "spusti twitter", "otvorím twitter", "x"],
+            "open_notepad": ["otvor poznámkový blok", "poznámkový blok", "notepad", "poznámky", "otvor textový editor", "textový editor"],
+            "open_calculator": ["otvor kalkulačku", "kalkulačka", "spusti kalkulačku", "otvorím kalkulačku"],
+            "list_programs": ["vypiš programy", "programy", "zoznam", "ukáž zoznam programov", "vypíš aplikácie"],
+             "open_program": ["otvor program", "spusti program", "otvor aplikáciu číslo", "spusti aplikáciu číslo", "program číslo"]
+        }
+    }
+}

@@ -253,6 +253,13 @@ class Cursor:
             logger.warning(f"Nepodarilo sa nájsť cieľový text '{target_text}' pre kontextové vyhľadávanie.")
             return False
 
+    def contextual_find_on_page(self, query: str):
+        """Otvorí vyhľadávanie na stránke a napíše dotaz."""
+        logger.info(f"Spúšťam vyhľadávanie na stránke s dotazom '{query}'")
+        pyautogui.hotkey('ctrl', 'f')
+        time.sleep(0.2)
+        pyautogui.typewrite(query, interval=0.05)
+
     def _execute_contextual_command(self, command: str, context: str) -> bool:
         """Pokúsi sa vykonať príkaz špecifický pre daný kontext."""
         context_data = self.config.get("contexts", {}).get(context, {})

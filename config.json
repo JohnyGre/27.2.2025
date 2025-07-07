@@ -172,6 +172,22 @@
                 "power_of_two": {"triggers": ["na druhú"], "action": [{"type": "press", "key": "@"}]},
                 "square_root": {"triggers": ["odmocnina"], "action": [{"type": "press", "key": "r"}]}
             }
+        },
+        "browser": {
+            "keywords": ["chrome", "firefox", "edge", "prehliadač"],
+            "commands": {
+                "new_tab": {"triggers": ["nová karta"], "action": [{"type": "hotkey", "keys": ["ctrl", "t"]}]},
+                "close_tab": {"triggers": ["zavri kartu"], "action": [{"type": "hotkey", "keys": ["ctrl", "w"]}]},
+                "next_tab": {"triggers": ["ďalšia karta"], "action": [{"type": "hotkey", "keys": ["ctrl", "tab"]}]},
+                "prev_tab": {"triggers": ["predchádzajúca karta"], "action": [{"type": "hotkey", "keys": ["ctrl", "shift", "tab"]}]},
+                "reload_page": {"triggers": ["obnoviť", "reload"], "action": [{"type": "press", "key": "f5"}]},
+                "history_back": {"triggers": ["krok späť"], "action": [{"type": "hotkey", "keys": ["alt", "left"]}]},
+                "history_forward": {"triggers": ["krok vpred"], "action": [{"type": "hotkey", "keys": ["alt", "right"]}]},
+                "find_on_page": {
+                    "triggers": ["nájdi na stránke", "hľadaj na stránke"],
+                    "action": [{"type": "call_method", "name": "contextual_find_on_page", "params": ["{query}"]}]
+                }
+            }
         }
     }
 }

@@ -86,5 +86,63 @@
              "open_program": ["otvor program", "spusti program", "otvor aplikáciu číslo", "spusti aplikáciu číslo", "program číslo"],
              "toggle_cursor": ["kurzor", "prepni kurzor", "zapni kurzor", "vypni kurzor"]
         }
+    },
+    "contexts": {
+        "youtube": {
+            "keywords": ["youtube"],
+            "commands": {
+                "search": {
+                    "triggers": ["vyhľadaj", "nájdi", "hľadaj"],
+                    "action": [
+                        {"type": "call_method", "name": "contextual_search", "params": ["Hľadať", "{query}"]}
+                    ]
+                },
+                "toggle_play_pause": {
+                    "triggers": ["pauza", "zastav", "stop", "prehraj", "spusti", "pokračuj"],
+                    "action": [{"type": "press", "key": "k"}]
+                },
+                "fullscreen": {
+                    "triggers": ["celá obrazovka", "fullscreen"],
+                    "action": [{"type": "press", "key": "f"}]
+                },
+                "mute": {
+                    "triggers": ["vypni zvuk", "zapni zvuk", "ztlumit"],
+                    "action": [{"type": "press", "key": "m"}]
+                },
+                "seek_forward": {
+                    "triggers": ["posuň dopredu", "dopredu o desať"],
+                    "action": [{"type": "press", "key": "l"}]
+                },
+                "seek_backward": {
+                    "triggers": ["posuň dozadu", "dozadu o desať"],
+                    "action": [{"type": "press", "key": "j"}]
+                },
+                "next_video": {
+                    "triggers": ["ďalšie video", "next"],
+                    "action": [{"type": "hotkey", "keys": ["shift", "n"]}]
+                },
+                "toggle_subtitles": {
+                    "triggers": ["zapni titulky", "vypni titulky", "titulky"],
+                    "action": [{"type": "press", "key": "c"}]
+                },
+                "theater_mode": {
+                    "triggers": ["režim kino", "kino"],
+                    "action": [{"type": "press", "key": "t"}]
+                }
+            }
+        },
+        "coding": {
+            "keywords": ["visual studio code", "pycharm", "sublime"],
+            "commands": {
+                "comment": {
+                    "triggers": ["zakomentuj", "komentár"],
+                    "action": [{"type": "hotkey", "keys": ["ctrl", "/"]}]
+                },
+                "save": {
+                    "triggers": ["ulož", "save"],
+                    "action": [{"type": "hotkey", "keys": ["ctrl", "s"]}]
+                }
+            }
+        }
     }
 }

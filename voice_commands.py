@@ -13,7 +13,7 @@ from comtypes import CLSCTX_ALL
 from ctypes import cast, POINTER
 from queue import Queue
 from deepseek_integration import GeminiAPI
-from screen_reader import process_voice_command
+from screen_reader import process_voice_command, read_text_from_screen, find_text_position
 import logging
 import pygetwindow as gw
 
@@ -203,11 +203,102 @@ class Cursor:
             logger.error(f"Chyba pri otváraní aplikácie {app_name}: {e}")
             return False
 
+    def _get_current_context(self) -> Optional[str]:
+        """Zistí aktuálny kontext na základe aktívneho okna."""
+        try:
+            active_window = gw.getActiveWindow()
+            if not active_window:
+                return None
+            
+            window_title = active_window.title.lower()
+            contexts = self.config.get("contexts", {})
+            
+            for context_name, context_data in contexts.items():
+                for keyword in context_data.get("keywords", []):
+                    if keyword.lower() in window_title:
+                        logger.info(f"Detekovaný kontext: {context_name}")
+                        return context_name
+        except Exception as e:
+            logger.warning(f"Nepodarilo sa zistiť kontext: {e}")
+        return None
 
-import pygetwindow as gw
+    def contextual_search(self, target_text: str, query: str):
+        """Vykoná OCR vyhľadávanie v aktuálnom okne, klikne a napíše text."""
+        logger.info(f"Spúšťam kontextové vyhľadávanie pre '{target_text}' s dotazom '{query}'")
+        active_window = gw.getActiveWindow()
+        region = None
+        if active_window and active_window.width > 0 and active_window.height > 0:
+            region = (active_window.left, active_window.top, active_window.width, active_window.height)
+
+        data, valid_words, resize_factor = read_text_from_screen(region=region)
+        position, matched_text = find_text_position(data, target_text, valid_words)
+
+        if position and matched_text:
+            # Použijeme existujúcu funkciu, ale len na presun a kliknutie
+            region_offset = (region[0], region[1]) if region else (0, 0)
+            
+            # Vypočítame stred cieľového textu
+            x, y, w, h = position
+            center_x = region_offset[0] + x + w // 2
+            center_y = region_offset[1] + y + h // 2
+            
+            # Klikneme, napíšeme a potvrdíme
+            pyautogui.click(center_x, center_y)
+            time.sleep(0.2)
+            pyautogui.typewrite(query, interval=0.05)
+            time.sleep(0.1)
+            pyautogui.press("enter")
+            return True
+        else:
+            logger.warning(f"Nepodarilo sa nájsť cieľový text '{target_text}' pre kontextové vyhľadávanie.")
+            return False
+
+    def _execute_contextual_command(self, command: str, context: str) -> bool:
+        """Pokúsi sa vykonať príkaz špecifický pre daný kontext."""
+        context_data = self.config.get("contexts", {}).get(context, {})
+        context_commands = context_data.get("commands", {})
+
+        for cmd_name, cmd_data in context_commands.items():
+            for trigger in cmd_data.get("triggers", []):
+                if trigger in command:
+                    time.sleep(0.2) # Stabilizačná pauza
+                    
+                    query = ""
+                    if "{query}" in json.dumps(cmd_data.get("action", [])):
+                        parts = command.split(trigger, 1)
+                        if len(parts) > 1:
+                            query = parts[1].strip()
+
+                    logger.info(f"Vykonávam kontextový príkaz '{cmd_name}' s query '{query}'")
+                    
+                    for action_step in cmd_data.get("action", []):
+                        action_type = action_step.get("type")
+                        
+                        if action_type == "call_method":
+                            method_name = action_step.get("name")
+                            params = action_step.get("params", [])
+                            # Nahradenie placeholderov
+                            processed_params = [p.replace("{query}", query) for p in params]
+                            
+                            if hasattr(self, method_name):
+                                getattr(self, method_name)(*processed_params)
+                            else:
+                                logger.error(f"Metóda '{method_name}' nebola nájdená v triede Cursor.")
+
+                        elif action_type == "press":
+                            pyautogui.press(action_step.get("key"))
+                        elif action_type == "typewrite":
+                            text_to_write = action_step.get("text", "").replace("{query}", query)
+                            pyautogui.typewrite(text_to_write)
+                        elif action_type == "hotkey":
+                            pyautogui.hotkey(*action_step.get("keys", []))
+                        
+                        time.sleep(0.1)
+                    return True
+        return False
 
 def voice_command_listener(cursor: Cursor, queue: Queue):
-    """Spracováva hlasové príkazy s jasne oddelenou logikou."""
+    """Spracováva hlasové príkazy s prioritou kontextu."""
     recognizer = sr.Recognizer()
     microphone = sr.Microphone()
 
@@ -225,7 +316,17 @@ def voice_command_listener(cursor: Cursor, queue: Queue):
             logger.info(f"Rozpoznaný príkaz: {command}")
 
             command_handled = False
-            # 1. Lokálne príkazy s priamou akciou (najvyššia priorita)
+
+            # 1. Kontextové príkazy (najvyššia priorita)
+            current_context = cursor._get_current_context()
+            if current_context:
+                if cursor._execute_contextual_command(command, current_context):
+                    command_handled = True
+
+            if command_handled:
+                continue
+
+            # 2. Globálne príkazy s priamou akciou
             for cmd_key, (action, response) in cursor.command_map.items():
                 if any(cmd_word in command for cmd_word in cursor.commands.get(cmd_key, [])):
                     action()
@@ -236,7 +337,7 @@ def voice_command_listener(cursor: Cursor, queue: Queue):
             if command_handled:
                 continue
 
-            # 2. Komplexné lokálne príkazy (vyžaduj��ce parametre z príkazu)
+            # 3. Komplexné globálne príkazy
             if "volume_set" in cursor.commands and any(cmd in command for cmd in cursor.commands["volume_set"]):
                 if match := re.search(r"\b(\d{1,3})\b", command):
                     value = int(match.group(1))
@@ -254,8 +355,7 @@ def voice_command_listener(cursor: Cursor, queue: Queue):
             if command_handled:
                 continue
 
-            # 3. OCR a Gemini (najnižšia priorita)
-            # Získanie aktívneho okna pre OCR
+            # 4. OCR a Gemini (najnižšia priorita)
             active_window = gw.getActiveWindow()
             region = None
             if active_window and active_window.width > 0 and active_window.height > 0:
@@ -291,7 +391,7 @@ def voice_command_listener(cursor: Cursor, queue: Queue):
                 queue.put(("tts", "Príkaz nebol rozpoznaný."))
 
         except sr.UnknownValueError:
-            pass  # Ignorovať nerozpoznané príkazy
+            pass
         except sr.WaitTimeoutError:
             continue
         except Exception as e:
@@ -300,6 +400,5 @@ def voice_command_listener(cursor: Cursor, queue: Queue):
 
 
 if __name__ == "__main__":
-    cursor = Cursor()
-    q = Queue()
-    voice_command_listener(cursor, q)
+    # Tento blok sa nespustí, keď sa súbor importuje
+    pass

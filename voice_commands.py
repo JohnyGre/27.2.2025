@@ -15,6 +15,7 @@ from queue import Queue
 from deepseek_integration import GeminiAPI
 from screen_reader import process_voice_command
 import logging
+import pygetwindow as gw
 
 # Nastavenie logovania
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -24,10 +25,11 @@ logger = logging.getLogger(__name__)
 class Cursor:
     """Trieda na ovládanie kurzora a spracovanie hlasových príkazov."""
 
-    def __init__(self, config_path: str = "config.json"):
+    def __init__(self, air_cursor, config_path: str = "config.json"):
         self.running = True
         self.mic_enabled = True
         self.headphones_enabled = True
+        self.air_cursor = air_cursor
         self.config = self._load_config(config_path)
         self.commands = self.config["voice"]["commands"]
 
@@ -46,6 +48,7 @@ class Cursor:
 
         # Mapovanie príkazov na funkcie
         self.command_map: Dict[str, tuple[Callable, str]] = {
+            "toggle_cursor": (self.toggle_air_cursor, "Kurzor prepnutý."),
             "exit": (self._exit, "Aplikácia sa ukončuje."),
             "click": (self.click, "Kurzor klikol."),
             "right_click": (self.right_click, "Kurzor klikol pravým tlačidlom."),
@@ -71,6 +74,13 @@ class Cursor:
             "open_calculator": (lambda: os.system("calc"), "Kalkulačka bola otvorená."),
             "web_back": (self.web_back, "Návrat na predchádzajúcu stránku."),
         }
+
+    def toggle_air_cursor(self):
+        """Prepne stav sledovania kurzora."""
+        is_enabled = self.air_cursor.toggle_tracking()
+        status = "zapnuté" if is_enabled else "vypnuté"
+        logger.info(f"Sledovanie kurzora bolo {status}.")
+        return is_enabled
 
     def _load_config(self, config_path: str) -> Dict:
         """Načíta konfiguráciu zo súboru."""
@@ -194,8 +204,10 @@ class Cursor:
             return False
 
 
+import pygetwindow as gw
+
 def voice_command_listener(cursor: Cursor, queue: Queue):
-    """Spracováva hlasové príkazy s prioritou OCR a Selenium pred Gemini."""
+    """Spracováva hlasové príkazy s jasne oddelenou logikou."""
     recognizer = sr.Recognizer()
     microphone = sr.Microphone()
 
@@ -208,63 +220,75 @@ def voice_command_listener(cursor: Cursor, queue: Queue):
             with microphone as source:
                 recognizer.adjust_for_ambient_noise(source, duration=0.5)
                 audio = recognizer.listen(source, timeout=5)
-            command = recognizer.recognize_google(audio, language="sk-SK").lower()
+            command = recognizer.recognize_google(audio, language="sk-SK").lower().strip()
             queue.put(("stt", command))
             logger.info(f"Rozpoznaný príkaz: {command}")
 
-            # 1. Lokálne príkazy (najvyššia priorita)
+            command_handled = False
+            # 1. Lokálne príkazy s priamou akciou (najvyššia priorita)
             for cmd_key, (action, response) in cursor.command_map.items():
-                if any(cmd in command for cmd in cursor.commands[cmd_key]):
+                if any(cmd_word in command for cmd_word in cursor.commands.get(cmd_key, [])):
                     action()
                     queue.put(("tts", response))
+                    command_handled = True
                     break
-            else:
-                # 2. Komplexné lokálne príkazy
-                if "volume_set" in cursor.commands and any(cmd in command for cmd in cursor.commands["volume_set"]):
-                    if match := re.search(r"\b(\d{1,3})\b", command):
-                        value = int(match.group(1))
-                        cursor.volume_set(value)
-                        queue.put(("tts", f"Hlasitosť nastavená na {value}%."))
-                    else:
-                        queue.put(("tts", "Zadajte číslo pre hlasitosť."))
-                elif "open_application" in cursor.commands and any(cmd in command for cmd in cursor.commands["open_application"]):
-                    parts = command.split()
-                    if len(parts) > 1:
-                        app_name = " ".join(parts[1:])
-                        success = cursor.open_application(app_name)
-                        queue.put(("tts", f"Aplikácia '{app_name}' {'otvorená' if success else 'nenájdená'}."))
-                    else:
-                        queue.put(("tts", "Zadajte názov aplikácie."))
-                # 3. OCR a Selenium (čítanie obrazovky a webová interakcia)
-                else:
-                    success, message = process_voice_command(command)
-                    if success:
-                        queue.put(("tts", message))
-                    # 4. Gemini API iba ak OCR/Selenium zlyhá a Gemini je dostupné
-                    elif cursor.gemini:
-                        try:
-                            response = cursor.gemini.process_command(command)
-                            if response["status"] == "success":
-                                json_response = response["message"]
-                                if isinstance(json_response, dict):  # Ak je odpoveď JSON (akcia)
-                                    action_command = json_response.get("action_command", {})
-                                    if action_name := action_command.get("name"):
-                                        if hasattr(cursor, action_name):
-                                            getattr(cursor, action_name)(**action_command.get("parameters", {}))
-                                            queue.put(("tts", json_response.get("intent", "Akcia vykonaná.")))
-                                        else:
-                                            queue.put(("tts", "Neznáma akcia."))
-                                    else:
-                                        queue.put(("tts", json_response.get("message", "Nerozumiem.")))
-                                else:  # Ak je odpoveď text (otázka)
-                                    queue.put(("tts", json_response))
+            
+            if command_handled:
+                continue
+
+            # 2. Komplexné lokálne príkazy (vyžaduj��ce parametre z príkazu)
+            if "volume_set" in cursor.commands and any(cmd in command for cmd in cursor.commands["volume_set"]):
+                if match := re.search(r"\b(\d{1,3})\b", command):
+                    value = int(match.group(1))
+                    cursor.volume_set(value)
+                    queue.put(("tts", f"Hlasitosť nastavená na {value}%."))
+                    command_handled = True
+            elif "open_application" in cursor.commands and any(cmd in command for cmd in cursor.commands["open_application"]):
+                parts = command.split()
+                if len(parts) > 1:
+                    app_name = " ".join(parts[1:])
+                    success = cursor.open_application(app_name)
+                    queue.put(("tts", f"Aplikácia '{app_name}' {'otvorená' if success else 'nenájdená'}."))
+                    command_handled = True
+
+            if command_handled:
+                continue
+
+            # 3. OCR a Gemini (najnižšia priorita)
+            # Získanie aktívneho okna pre OCR
+            active_window = gw.getActiveWindow()
+            region = None
+            if active_window and active_window.width > 0 and active_window.height > 0:
+                region = (active_window.left, active_window.top, active_window.width, active_window.height)
+
+            success, message = process_voice_command(command, region=region)
+            if success:
+                queue.put(("tts", message))
+            elif cursor.gemini:
+                try:
+                    response = cursor.gemini.process_command(command)
+                    if response["status"] == "success":
+                        message = response["message"]
+                        if message.get("type") == "action":
+                            action_info = message.get("action", {})
+                            action_name = action_info.get("name")
+                            action_params = action_info.get("parameters", {})
+                            if action_name and hasattr(cursor, action_name):
+                                getattr(cursor, action_name)(**action_params)
+                                queue.put(("tts", message.get("response", "Akcia vykonaná.")))
                             else:
-                                queue.put(("tts", "Nepodarilo sa spracovať príkaz."))
-                        except Exception as e:
-                            logger.error(f"Chyba pri volaní Gemini: {e}")
-                            queue.put(("tts", "Chyba pri spracovaní príkazu."))
+                                queue.put(("tts", "Nerozumiem príkazu na akciu."))
+                        elif message.get("type") == "answer":
+                            queue.put(("tts", message.get("answer", "Nenašla som odpoveď.")))
+                        else:
+                            queue.put(("tts", "Dostala som neznámy typ odpovede."))
                     else:
-                        queue.put(("tts", "Príkaz nebol rozpoznaný."))
+                        queue.put(("tts", response.get("message", "Nepodarilo sa spracovať príkaz.")))
+                except Exception as e:
+                    logger.error(f"Chyba pri spracovaní Gemini odpovede: {e}")
+                    queue.put(("tts", "Chyba pri spracovaní príkazu."))
+            else:
+                queue.put(("tts", "Príkaz nebol rozpoznaný."))
 
         except sr.UnknownValueError:
             pass  # Ignorovať nerozpoznané príkazy

@@ -83,7 +83,8 @@
             "open_notepad": ["otvor poznámkový blok", "poznámkový blok", "notepad", "poznámky", "otvor textový editor", "textový editor"],
             "open_calculator": ["otvor kalkulačku", "kalkulačka", "spusti kalkulačku", "otvorím kalkulačku"],
             "list_programs": ["vypiš programy", "programy", "zoznam", "ukáž zoznam programov", "vypíš aplikácie"],
-             "open_program": ["otvor program", "spusti program", "otvor aplikáciu číslo", "spusti aplikáciu číslo", "program číslo"]
+             "open_program": ["otvor program", "spusti program", "otvor aplikáciu číslo", "spusti aplikáciu číslo", "program číslo"],
+             "toggle_cursor": ["kurzor", "prepni kurzor", "zapni kurzor", "vypni kurzor"]
         }
     }
 }

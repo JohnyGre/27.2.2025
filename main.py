@@ -35,15 +35,20 @@ def run_cursor_tracking(air_cursor: AirCursor, cap: cv2.VideoCapture, queue: Que
             break
 
         frame = cv2.flip(frame, 1)
-        finger_pos = air_cursor.process_frame(frame)
+        
+        if air_cursor.tracking_enabled:
+            finger_pos = air_cursor.process_frame(frame)
 
-        if finger_pos and air_cursor.calibrated:
-            air_cursor.update_cursor(finger_pos)
+            if finger_pos and air_cursor.calibrated:
+                air_cursor.update_cursor(finger_pos)
 
-        if not air_cursor.calibrated:
-            if finger_pos:
-                cv2.putText(frame, f"Kalibrácia {len(air_cursor.calibration_sets) + 1}/3 - Bod {len(air_cursor.corners) + 1}/4",
-                            (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+            if not air_cursor.calibrated:
+                if finger_pos:
+                    cv2.putText(frame, f"Kalibrácia {len(air_cursor.calibration_sets) + 1}/3 - Bod {len(air_cursor.corners) + 1}/4",
+                                (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+        else:
+            cv2.putText(frame, "Sledovanie kurzora je vypnuté", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+
 
         for i, corner in enumerate(air_cursor.corners):
             cv2.circle(frame, corner, 5, (0, 0, 255), -1)
@@ -64,6 +69,8 @@ def run_cursor_tracking(air_cursor: AirCursor, cap: cv2.VideoCapture, queue: Que
             air_cursor.calibrated = False
             air_cursor.prev_cursor = None
             queue.put(("tts", "Kalibrácia zresetovaná"))
+        elif key == ord("q"): # Pridanie klávesy 'q' na ukončenie
+            air_cursor.running = False
 
 class ModernGUI:
     def __init__(self, root: tk.Tk, queue: Queue, cursor: Cursor, air_cursor: AirCursor):
@@ -107,10 +114,18 @@ class ModernGUI:
         self.mic_button.pack(side=tk.LEFT, padx=5, pady=5)
         self.headphone_button = tk.Button(self.buttons_frame, text="ON", command=self.toggle_headphones, bg="green", fg="white", font=("Helvetica", 12))
         self.headphone_button.pack(side=tk.LEFT, padx=5, pady=5)
+        self.cursor_button = tk.Button(self.buttons_frame, text="Kurzor ON", command=self.toggle_air_cursor, bg="green", fg="white", font=("Helvetica", 12))
+        self.cursor_button.pack(side=tk.LEFT, padx=5, pady=5)
 
         self.mic_enabled = True
         self.headphones_enabled = True
+        self.air_cursor_enabled = True
         self.process_queue()
+
+    def toggle_air_cursor(self):
+        """Prepnutie stavu sledovania kurzora."""
+        self.air_cursor_enabled = self.cursor.toggle_air_cursor()
+        self.cursor_button.config(text="Kurzor ON" if self.air_cursor_enabled else "Kurzor OFF", bg="green" if self.air_cursor_enabled else "red")
 
     def toggle_mic(self):
         """Prepnutie stavu mikrofónu."""
@@ -146,8 +161,8 @@ def main():
     config = ConfigManager()
     os.environ["GEMINI_API_KEY"] = config.get("gemini", "api_key")
     cap = cv2.VideoCapture(config.get("camera", "device_id"))
-    cursor = Cursor()
     air_cursor = AirCursor()
+    cursor = Cursor(air_cursor)
     root = tk.Tk()
     queue = Queue()
     gui = ModernGUI(root, queue, cursor, air_cursor)

@@ -1,0 +1,13 @@
+opencv-python
+gTTS
+playsound3
+Pillow
+mediapipe
+numpy
+screeninfo
+pyautogui
+SpeechRecognition
+PyAudio
+google-generativeai
+pytesseract
+pycaw

@@ -21,6 +21,12 @@ class AirCursor:
         self.calibration_file = Path("calibration.json")
         self.load_calibration_points()
         self.running = True
+        self.tracking_enabled = True
+
+    def toggle_tracking(self):
+        """Prepne stav sledovania."""
+        self.tracking_enabled = not self.tracking_enabled
+        return self.tracking_enabled
 
     def _setup_mediapipe(self):
         """Nastavenie MediaPipe Hands s konfiguráciou."""
@@ -48,22 +54,28 @@ class AirCursor:
         self.prev_cursor = None
         cursor_config = self.config.get("cursor")
         self.cursor_smoothing = cursor_config.get("smoothing", 0.7)
-        self.sensitivity_x = cursor_config.get("sensitivity_x", 1.3)
-        self.sensitivity_y = cursor_config.get("sensitivity_y", 1.3)
+        self.sensitivity_x = cursor_config.get("sensitivity_x", 1.0)
+        self.sensitivity_y = cursor_config.get("sensitivity_y", 1.0)
 
     def load_calibration_points(self):
         """Načítanie kalibračných bodov zo súboru."""
         if not self.calibration_file.exists():
-            logger.info("Kalibračný súbor neexistuje, inicializujem nové nastavenie.")
+            logger.warning("Kalibračný súbor 'calibration.json' neexistuje. Je potrebná nová kalibrácia.")
+            self.calibrated = False
             return
         try:
             with self.calibration_file.open("r", encoding="utf-8") as file:
                 data = json.load(file)
                 self.corners = data.get("corners", [])
-                self.calibrated = len(self.corners) >= 4
-                logger.info("Kalibračné body načítané zo súboru.")
+                if len(self.corners) >= 4:
+                    self.calibrated = True
+                    logger.info(f"Kalibračné body úspešne načítané: {self.corners}")
+                else:
+                    self.calibrated = False
+                    logger.warning("V kalibračnom súbore nie je dostatok bodov. Je potrebná nová kalibrácia.")
         except (json.JSONDecodeError, IOError) as e:
             logger.error(f"Chyba pri načítaní kalibračných bodov: {e}")
+            self.calibrated = False
 
     def save_calibration_points(self):
         """Uloženie kalibračných bodov do súboru."""
@@ -138,9 +150,9 @@ class AirCursor:
             rel_x = (x - self.corners[0][0]) / (self.corners[1][0] - self.corners[0][0])
             rel_y = (y - self.corners[0][1]) / (self.corners[2][1] - self.corners[0][1])
 
-            # Ošetrenie hodnôt mimo rozsahu
-            rel_x = max(0.01, min(rel_x, 0.99))  # Zabránime úplnému dosiahnutiu rohov (0 alebo 1)
-            rel_y = max(0.01, min(rel_y, 0.99))
+            # Orezanie hodnôt na rozsah [0, 1]
+            rel_x = max(0.0, min(1.0, rel_x))
+            rel_y = max(0.0, min(1.0, rel_y))
 
             cursor_x = int(rel_x * self.monitor_width * self.sensitivity_x)
             cursor_y = int(rel_y * self.monitor_height * self.sensitivity_y)

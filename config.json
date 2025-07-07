@@ -143,6 +143,35 @@
                     "action": [{"type": "hotkey", "keys": ["ctrl", "s"]}]
                 }
             }
+        },
+        "calculator": {
+            "keywords": ["kalkulačka", "calculator"],
+            "commands": {
+                "num_0": {"triggers": ["nula", "0"], "action": [{"type": "press", "key": "0"}]},
+                "num_1": {"triggers": ["jeden", "1"], "action": [{"type": "press", "key": "1"}]},
+                "num_2": {"triggers": ["dva", "2"], "action": [{"type": "press", "key": "2"}]},
+                "num_3": {"triggers": ["tri", "3"], "action": [{"type": "press", "key": "3"}]},
+                "num_4": {"triggers": ["štyri", "4"], "action": [{"type": "press", "key": "4"}]},
+                "num_5": {"triggers": ["päť", "5"], "action": [{"type": "press", "key": "5"}]},
+                "num_6": {"triggers": ["šesť", "6"], "action": [{"type": "press", "key": "6"}]},
+                "num_7": {"triggers": ["sedem", "7"], "action": [{"type": "press", "key": "7"}]},
+                "num_8": {"triggers": ["osem", "8"], "action": [{"type": "press", "key": "8"}]},
+                "num_9": {"triggers": ["deväť", "9"], "action": [{"type": "press", "key": "9"}]},
+                "add": {"triggers": ["plus"], "action": [{"type": "press", "key": "+"}]},
+                "subtract": {"triggers": ["mínus"], "action": [{"type": "press", "key": "-"}]},
+                "multiply": {"triggers": ["krát"], "action": [{"type": "press", "key": "*"}]},
+                "divide": {"triggers": ["deleno"], "action": [{"type": "press", "key": "/"}]},
+                "equals": {"triggers": ["rovná sa"], "action": [{"type": "press", "key": "enter"}]},
+                "clear": {"triggers": ["vymaž", "clear"], "action": [{"type": "press", "key": "escape"}]},
+                "decimal": {"triggers": ["čiarka"], "action": [{"type": "press", "key": ","}]},
+                "memory_store": {"triggers": ["ulož pamäť"], "action": [{"type": "hotkey", "keys": ["ctrl", "m"]}]},
+                "memory_recall": {"triggers": ["vyvolaj pamäť"], "action": [{"type": "hotkey", "keys": ["ctrl", "r"]}]},
+                "memory_add": {"triggers": ["pamäť plus"], "action": [{"type": "hotkey", "keys": ["ctrl", "p"]}]},
+                "memory_subtract": {"triggers": ["pamäť mínus"], "action": [{"type": "hotkey", "keys": ["ctrl", "q"]}]},
+                "memory_clear": {"triggers": ["vymaž pamäť"], "action": [{"type": "hotkey", "keys": ["ctrl", "l"]}]},
+                "power_of_two": {"triggers": ["na druhú"], "action": [{"type": "press", "key": "@"}]},
+                "square_root": {"triggers": ["odmocnina"], "action": [{"type": "press", "key": "r"}]}
+            }
         }
     }
 }

@@ -75,6 +75,7 @@ class GeminiAPI:
                     "response": "Stručná odpoveď pre používateľa v slovenčine."
                 }
                 - "name" musí byť platný názov funkcie: 'open_webpage', 'click', 'double_click', 'scroll_up', 'scroll_down', 'volume_up', 'volume_down', 'volume_set', 'open_application'.
+                - Pre 'open_application' použi parameter "app_name".
                 - Ak akcia nemá parametre, "parameters" je prázdny objekt {}.
                 - Príklad pre "otvor youtube": {"type": "action", "action": {"name": "open_webpage", "parameters": {"url": "https://www.youtube.com"}}, "response": "Otváram YouTube."}
                 - Príklad pre "klikni": {"type": "action", "action": {"name": "click", "parameters": {}}, "response": "Klikol som."}

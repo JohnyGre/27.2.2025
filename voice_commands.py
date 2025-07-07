@@ -257,45 +257,42 @@ class Cursor:
         """Pokúsi sa vykonať príkaz špecifický pre daný kontext."""
         context_data = self.config.get("contexts", {}).get(context, {})
         context_commands = context_data.get("commands", {})
+        command_handled = False
 
-        for cmd_name, cmd_data in context_commands.items():
-            for trigger in cmd_data.get("triggers", []):
-                if trigger in command:
-                    time.sleep(0.2) # Stabilizačná pauza
-                    
-                    query = ""
-                    if "{query}" in json.dumps(cmd_data.get("action", [])):
-                        parts = command.split(trigger, 1)
-                        if len(parts) > 1:
-                            query = parts[1].strip()
+        # Nahradíme slová číslicami pre lepšie rozpoznávanie
+        # command = command.replace("jeden", "1")... # Toto by bolo príliš zložité, spoliehame sa na triggers
 
-                    logger.info(f"Vykonávam kontextový príkaz '{cmd_name}' s query '{query}'")
-                    
-                    for action_step in cmd_data.get("action", []):
-                        action_type = action_step.get("type")
+        # Zoradíme príkazy podľa dĺžky triggeru, aby "pamäť plus" malo prednosť pred "plus"
+        sorted_commands = sorted(context_commands.items(), key=lambda item: max(len(t) for t in item[1].get("triggers", [""])), reverse=True)
+
+        remaining_command = command
+        while remaining_command:
+            found_in_loop = False
+            for cmd_name, cmd_data in sorted_commands:
+                for trigger in cmd_data.get("triggers", []):
+                    if remaining_command.startswith(trigger):
+                        logger.info(f"Vykonávam kontextový príkaz '{cmd_name}' pre trigger '{trigger}'")
+                        time.sleep(0.2)
+
+                        for action_step in cmd_data.get("action", []):
+                            action_type = action_step.get("type")
+                            if action_type == "press":
+                                pyautogui.press(action_step.get("key"))
+                            elif action_type == "hotkey":
+                                pyautogui.hotkey(*action_step.get("keys", []))
                         
-                        if action_type == "call_method":
-                            method_name = action_step.get("name")
-                            params = action_step.get("params", [])
-                            # Nahradenie placeholderov
-                            processed_params = [p.replace("{query}", query) for p in params]
-                            
-                            if hasattr(self, method_name):
-                                getattr(self, method_name)(*processed_params)
-                            else:
-                                logger.error(f"Metóda '{method_name}' nebola nájdená v triede Cursor.")
-
-                        elif action_type == "press":
-                            pyautogui.press(action_step.get("key"))
-                        elif action_type == "typewrite":
-                            text_to_write = action_step.get("text", "").replace("{query}", query)
-                            pyautogui.typewrite(text_to_write)
-                        elif action_type == "hotkey":
-                            pyautogui.hotkey(*action_step.get("keys", []))
-                        
-                        time.sleep(0.1)
-                    return True
-        return False
+                        remaining_command = remaining_command[len(trigger):].strip()
+                        command_handled = True
+                        found_in_loop = True
+                        break # Našli sme najlepší trigger, pokračujeme so zvyškom príkazu
+                if found_in_loop:
+                    break
+            
+            if not found_in_loop:
+                # Ak sme nenašli žiadny trigger, ukončíme slučku, aby sme sa nezacyklili
+                break
+        
+        return command_handled
 
 def voice_command_listener(cursor: Cursor, queue: Queue):
     """Spracováva hlasové príkazy s prioritou kontextu."""
